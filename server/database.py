@@ -2,6 +2,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from utils import hashing
 
 load_dotenv()
 
@@ -51,7 +52,8 @@ def get_user_by_email(email: str):
 
 def create_user(user_data: dict):
     query = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s) RETURNING *"
-    params = (user_data.get('name'), user_data.get('email'), user_data.get('password'))
+    password = hashing.encrypt(user_data.get('password'))
+    params = (user_data.get('name'), user_data.get('email'), password)
     result = query_database(query, params)
     return result[0] if result else None
 

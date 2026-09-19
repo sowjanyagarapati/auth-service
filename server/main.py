@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from utils import hashing
 
 from database import get_all_users, get_user_by_email, create_user
 
@@ -54,7 +55,10 @@ def create_new_user(user: UserInput):
 def login(user: UserInput):
     try:
         exists = get_user_by_email(user.email)
-        if exists['password'] == user.password and exists['email'] == user.email:
+        if not exists:
+            return {"message": "Invalid credentials"}
+        password = hashing.verify_password(user.password, exists['password'])
+        if password:
             return {"message": "Login successful"}
         else:
             return {"message": "Invalid credentials"}
