@@ -1,9 +1,10 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from utils import hashing
+import wikipedia
 
 from database import get_all_users, get_user_by_email, create_user
 
@@ -24,6 +25,17 @@ class UserInput(BaseModel):
     email: str
     password: str = None
 
+def get_current_user(request: Request):
+    token = request.headers.get('Authorization')
+    if not token:
+        raise HTTPException(status_code=401, detail="No token provided")
+    token = token.split(' ')[1]
+    try:
+        user = hashing.decode_jwt(token)
+        return user
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
 @app.get("/")
 def read_root():
     return {"message": "Welcome to auth-service"}
@@ -59,8 +71,17 @@ def login(user: UserInput):
             return {"message": "Invalid credentials"}
         password = hashing.verify_password(user.password, exists['password'])
         if password:
-            return {"message": "Login successful"}
+            token = hashing.generate_jwt(exists['name'])
+            return {"token": token, "message": "Login successful"}
         else:
             return {"message": "Invalid credentials"}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error during login " + str(e))
+
+@app.get("/wiki/me")
+def get_name_meaning(current_user: str = Depends(get_current_user)):
+    try:
+        summary = wikipedia.summary(current_user, sentences=2)
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error fetching summary " + str(e))

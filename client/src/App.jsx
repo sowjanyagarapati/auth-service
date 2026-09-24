@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import './App.css';
 
 function App() {
     const [isLogin, setIsLogin] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [wikiSummary, setIsWikiSummary] = useState('');
     
     // State to hold the user's input
     const [email, setEmail] = useState('');
@@ -24,6 +26,8 @@ function App() {
                 password: password
             });
             // Update the message state with the response from the server
+            localStorage.setItem('token', response.data.token);
+            setIsLoggedIn(true);
             setMessage(response.data.message);
         } catch (error) {
             // If there's an error, display the error detail from FastAPI
@@ -46,6 +50,42 @@ function App() {
             setMessage(error.response?.data?.detail || "An error occurred connecting to the server.");
         }
     };
+
+    useEffect (() => {
+      const token = localStorage.getItem('token');
+      if(token) {
+        setIsLoggedIn(true);
+      }
+    }, [])
+    
+    useEffect(() => {
+    // Only run this if they are actually logged in
+    if (isLoggedIn) {
+        const fetchWiki = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`http://localhost:5000/wiki/me`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setIsWikiSummary(response.data.summary);
+            } catch (error) {
+                console.error("Failed to fetch wiki", error);
+            }
+        };
+        
+        fetchWiki();
+    }
+  }, [isLoggedIn, name]); // This bracket tells React: "Run this effect whenever isLoggedIn or name changes"
+
+  if (isLoggedIn) {
+    return (
+      <div>
+        <h1>Welcome {name}!! </h1>
+        <p>{wikiSummary ? wikiSummary : "Loading your summary..."}</p>
+      </div>
+    )
+  }
+
 
     return (
         <div className="auth-container">
