@@ -12,12 +12,21 @@ def encrypt(password):
 def verify_password(password, hashed_pw):
     return pwd_context.verify(password, hashed_pw)
 
-def generate_jwt(user):
+def generate_access_token(user):
     payload = {
         "user": user,
-        "exp": datetime.utcnow() + timedelta(minutes=1)
+        "type": "access",
+        "exp": datetime.utcnow() + timedelta(minutes=1) #short-lived access token
     }
     return jwt.encode(payload, os.environ.get('JWT_SECRET'), algorithm='HS256')
 
-def decode_jwt(token):
-    return jwt.decode(token, os.environ.get('JWT_SECRET'), algorithms=['HS256'])
+def generate_refresh_token(user):
+    payload = {
+        "user": user,
+        "type": "refresh",
+        "exp": datetime.utcnow() + timedelta(minutes=2) #long-lived refresh token
+    }
+    return jwt.encode(payload, os.environ.get('JWT_REFRESH_SECRET'), algorithm='HS256')
+
+def decode_jwt(token, secret=os.environ.get('JWT_SECRET')):
+    return jwt.decode(token, secret, algorithms=['HS256'])

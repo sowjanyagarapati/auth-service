@@ -24,9 +24,9 @@ function App() {
             const response = await axios.post('http://localhost:5000/login', {
                 email: email,
                 password: password
-            });
+            }, {withCredentials: true});
             // Update the message state with the response from the server
-            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('token', response.data.access_token);
             setIsLoggedIn(true);
             setMessage(response.data.message);
         } catch (error) {
@@ -70,13 +70,33 @@ function App() {
                 setIsWikiSummary(response.data.summary);
             } catch (error) {
                 if (error.response?.status === 401) {
-                    localStorage.removeItem('token');
-                    setIsLoggedIn(false);
-                }
-                console.error("Failed to fetch wiki", error);
+                    try {
+                // Call /refresh with withCredentials to send the HttpOnly Cookie
+                const refreshRes = await axios.post('http://localhost:5000/refresh', {}, {
+                    withCredentials: true 
+                });
+                
+                // 1. Save new Access Token
+                const newToken = refreshRes.data.access_token;
+                localStorage.setItem('token', newToken);
+                console.log("generated and stored new token")
+                
+                // 2. Retry original request with NEW token
+                const retryRes = await axios.get('http://localhost:5000/random', {
+                    headers: { Authorization: `Bearer ${newToken}` }
+                });
+                setIsWikiSummary(retryRes.data.summary);
+                return;
+            } catch (refreshError) {
+                // Refresh token also expired! Log user out.
+                localStorage.removeItem('token');
+                setIsLoggedIn(false);
             }
+        } else {
+        console.error("Failed to fetch data", error);
+    }
+    }
         };
-        
         fetchWiki();
     }
   }, [isLoggedIn, name]); // This bracket tells React: "Run this effect whenever isLoggedIn or name changes"
