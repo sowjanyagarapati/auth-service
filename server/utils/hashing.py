@@ -24,7 +24,7 @@ def generate_refresh_token(user):
     payload = {
         "user": user,
         "type": "refresh",
-        "exp": datetime.utcnow() + timedelta(minutes=2) #long-lived refresh token
+        "exp": datetime.utcnow() + timedelta(hours=2) #long-lived refresh token
     }
     return jwt.encode(payload, os.environ.get('JWT_REFRESH_SECRET'), algorithm='HS256')
 
