@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from utils import hashing
-import wikipedia
+import random
 
 from database import get_all_users, get_user_by_email, create_user
 
@@ -32,7 +32,7 @@ def get_current_user(request: Request):
     token = token.split(' ')[1]
     try:
         user = hashing.decode_jwt(token)
-        return user
+        return user.get("user")
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -78,10 +78,9 @@ def login(user: UserInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error during login " + str(e))
 
-@app.get("/wiki/me")
-def get_name_meaning(current_user: str = Depends(get_current_user)):
+@app.get("/random")
+def get_random_number(current_user: str = Depends(get_current_user)):
     try:
-        summary = wikipedia.summary(current_user, sentences=2)
-        return {"summary": summary}
+        return {"summary" :f"Hey {current_user}! Your random number is {random.randint(1, 100)}"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error fetching summary " + str(e))
+        raise HTTPException(status_code=500, detail="Error fetching random number " + str(e))

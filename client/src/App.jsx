@@ -64,11 +64,15 @@ function App() {
         const fetchWiki = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:5000/wiki/me`, {
+                const response = await axios.get(`http://localhost:5000/random`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setIsWikiSummary(response.data.summary);
             } catch (error) {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    setIsLoggedIn(false);
+                }
                 console.error("Failed to fetch wiki", error);
             }
         };
