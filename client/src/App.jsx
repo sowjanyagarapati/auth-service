@@ -52,11 +52,20 @@ function App() {
     };
 
     useEffect (() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+    
+        if (tokenFromUrl) {
+            localStorage.setItem('token', tokenFromUrl);
+            setIsLoggedIn(true);
+        // Clear token from URL bar for clean UI
+        window.history.replaceState({}, document.title, "/");
+        }
       const token = localStorage.getItem('token');
       if(token) {
         setIsLoggedIn(true);
       }
-    }, [])
+    }, []);
     
     useEffect(() => {
     // Only run this if they are actually logged in
@@ -162,7 +171,15 @@ function App() {
                     </div>
                 </div>
             )}
+            <button 
+                type="button" 
+                className="google-btn" 
+                onClick={() => window.location.href = "http://localhost:5000/auth/google/login"}
+            >
+                <i className="fab fa-google"></i> Sign in with Google
+            </button>
         </div>
+
     );
 }
 

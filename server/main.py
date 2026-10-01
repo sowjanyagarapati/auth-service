@@ -1,16 +1,22 @@
 import os
 from fastapi import FastAPI, HTTPException, Request, Depends, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from utils import hashing
 import random
+import httpx
 
 from database import get_all_users, get_user_by_email, create_user
 
 load_dotenv()
 
 app = FastAPI()
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+REDIRECT_URI = "http://localhost:5000/auth/google/callback"
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,3 +109,52 @@ def get_random_number(current_user: str = Depends(get_current_user)):
         return {"summary" :f"Hey {current_user}! Your random number is {random.randint(1, 100)}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error fetching random number " + str(e))
+
+# 1. Initiates the OAuth Flow
+@app.get("/auth/google/login")
+def google_login():
+    google_auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"response_type=code&client_id={GOOGLE_CLIENT_ID}"
+        f"&redirect_uri={REDIRECT_URI}&scope=openid%20email%20profile"
+    )
+    return RedirectResponse(google_auth_url)
+    
+# 2. Handles the Callback from Google
+@app.get("/auth/google/callback")
+async def google_callback(code: str, response: Response):
+    # A. Exchange code for Google Access Token
+    async with httpx.AsyncClient() as client:
+        token_res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+        )
+        token_data = token_res.json()
+        google_access_token = token_data.get("access_token")
+        # B. Fetch User Info from Google
+        user_info_res = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {google_access_token}"},
+        )
+        user_info = user_info_res.json()
+    user_email = user_info.get("email")
+    user_name = user_info.get("name")
+    # C. Find or Create User in PostgreSQL DB
+    exists = get_user_by_email(user_email)
+    if not exists:
+        create_user({"name": user_name, "email": user_email, "password": ""})
+    # D. Issue YOUR App's JWT & HttpOnly Refresh Cookie
+    access_token = hashing.generate_access_token(user_name)
+    refresh_token = hashing.generate_refresh_token(user_name)
+    # Set Cookie and redirect to React frontend
+    redirect_res = RedirectResponse(f"http://localhost:3000?token={access_token}")
+    redirect_res.set_cookie(
+        key="refresh_token", value=refresh_token, httponly=True, samesite="lax", secure=False
+    )
+    return redirect_res
