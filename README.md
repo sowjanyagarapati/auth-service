@@ -11,13 +11,6 @@ A high-performance, full-stack microservice demonstrating production-ready authe
 
 ---
 
-## 📸 Application Preview
-
-| Sign In (Existing User) | Sign Up (New Account) |
-| :---: | :---: |
-| <img src="docs/screenshots/signin.png" width="360" alt="Sign In Screen" /> | <img src="docs/screenshots/signup.png" width="360" alt="Sign Up Screen" /> |
-
----
 
 ## 🌟 Architecture & Security Highlights
 

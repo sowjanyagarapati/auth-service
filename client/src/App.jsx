@@ -1,48 +1,61 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { SignIn1 } from "./components/ui/modern-stunning-sign-in";
 import './App.css';
 
 function App() {
-    const [isLogin, setIsLogin] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [wikiSummary, setIsWikiSummary] = useState('');
-    
-    // Form state
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
-    
-    // Server feedback message
-    const [message, setMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleLogin = async (e) => {
-        e.preventDefault(); 
+    const handleLogin = async ({ email, password }) => {
+        setIsSubmitting(true);
+        setErrorMessage('');
+        setSuccessMessage('');
         try {
             const response = await axios.post('http://localhost:5000/login', {
                 email: email,
                 password: password
             }, { withCredentials: true });
             
-            localStorage.setItem('token', response.data.access_token);
-            setIsLoggedIn(true);
-            setMessage(response.data.message);
+            if (response.data.access_token) {
+                localStorage.setItem('token', response.data.access_token);
+                setIsLoggedIn(true);
+            } else {
+                setErrorMessage(response.data.message || "Invalid credentials.");
+            }
         } catch (error) {
-            setMessage(error.response?.data?.detail || "Invalid credentials or server error.");
+            setErrorMessage(error.response?.data?.detail || "Invalid credentials or server error.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handleSignup = async (e) => {
-        e.preventDefault();
+    const handleSignup = async ({ name, email, password }) => {
+        setIsSubmitting(true);
+        setErrorMessage('');
+        setSuccessMessage('');
         try {
             const response = await axios.post('http://localhost:5000/users/create', {
                 name: name,
                 email: email,
                 password: password
             });
-            setMessage(response.data.message);
-            setIsLogin(true);
+
+            if (response.data.message === "User created successfully") {
+                setSuccessMessage("Account created successfully! Please sign in.");
+                return true;
+            } else {
+                setErrorMessage(response.data.message || "Failed to create account.");
+                return false;
+            }
         } catch (error) {
-            setMessage(error.response?.data?.detail || "An error occurred creating your account.");
+            setErrorMessage(error.response?.data?.detail || "An error occurred creating your account.");
+            return false;
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -50,7 +63,8 @@ function App() {
         localStorage.removeItem('token');
         setIsLoggedIn(false);
         setIsWikiSummary('');
-        setMessage('Signed out successfully.');
+        setErrorMessage('');
+        setSuccessMessage('Signed out successfully.');
     };
 
     useEffect(() => {
@@ -104,173 +118,40 @@ function App() {
             };
             fetchWiki();
         }
-    }, [isLoggedIn, name]);
+    }, [isLoggedIn]);
+
+    if (!isLoggedIn) {
+        return (
+            <SignIn1 
+                onSignIn={handleLogin}
+                onSignUp={handleSignup}
+                onGoogleSignIn={() => window.location.href = "http://localhost:5000/auth/google/login"}
+                serverError={errorMessage}
+                serverSuccess={successMessage}
+                isSubmitting={isSubmitting}
+            />
+        );
+    }
 
     return (
-        <div className="auth-viewport">
-            
-            {/* Main Auth / Dashboard View */}
-            {isLoggedIn ? (
-                <div className="dashboard-card">
-                    <div className="dashboard-avatar">
-                        <i className="fas fa-user-check"></i>
-                    </div>
-                    <h2>Welcome Back</h2>
-                    <p className="subtitle">Secure session active</p>
-
-                    <div className="summary-pill">
-                        <i className="fas fa-bolt"></i>
-                        <span>{wikiSummary ? wikiSummary : "Loading live session telemetry..."}</span>
-                    </div>
-
-                    <button className="btn-signout" onClick={handleLogout}>
-                        <i className="fas fa-arrow-right-from-bracket"></i>
-                        <span>Sign Out</span>
-                    </button>
+        <div className="min-h-screen flex items-center justify-center bg-[#121212] p-4">
+            <div className="dashboard-card">
+                <div className="dashboard-avatar">
+                    <i className="fas fa-user-check"></i>
                 </div>
-            ) : (
-                <div className="auth-container">
-                    <div className="auth-card">
-                        
-                        {/* Header */}
-                        <div className="auth-card-header">
-                            <div className="brand-icon">
-                                <i className="fas fa-shield-halved"></i>
-                            </div>
-                            <h2>{isLogin ? "Welcome back" : "Create account"}</h2>
-                            <p>{isLogin ? "Enter your details to sign in" : "Get started with your free account"}</p>
-                        </div>
+                <h2>Welcome Back</h2>
+                <p className="subtitle">Secure session active</p>
 
-                        {/* Segmented Switcher */}
-                        <div className="auth-tabs">
-                            <button 
-                                type="button"
-                                className={`auth-tab ${isLogin ? 'active' : ''}`}
-                                onClick={() => { setIsLogin(true); setMessage(''); }}
-                            >
-                                Sign In
-                            </button>
-                            <button 
-                                type="button"
-                                className={`auth-tab ${!isLogin ? 'active' : ''}`}
-                                onClick={() => { setIsLogin(false); setMessage(''); }}
-                            >
-                                Sign Up
-                            </button>
-                        </div>
-
-                        {/* Form */}
-                        {isLogin ? (
-                            <form onSubmit={handleLogin} className="auth-form">
-                                <div className="input-group">
-                                    <label>Email</label>
-                                    <div className="input-wrapper">
-                                        <i className="fas fa-envelope"></i>
-                                        <input 
-                                            type="email" 
-                                            className="form-input"
-                                            placeholder="name@company.com" 
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label>Password</label>
-                                    <div className="input-wrapper">
-                                        <i className="fas fa-lock"></i>
-                                        <input 
-                                            type="password" 
-                                            className="form-input"
-                                            placeholder="••••••••" 
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <button type="submit" className="btn-submit">
-                                    <span>Sign In</span>
-                                    <i className="fas fa-arrow-right"></i>
-                                </button>
-                            </form>
-                        ) : (
-                            <form onSubmit={handleSignup} className="auth-form">
-                                <div className="input-group">
-                                    <label>Full Name</label>
-                                    <div className="input-wrapper">
-                                        <i className="fas fa-user"></i>
-                                        <input 
-                                            type="text" 
-                                            className="form-input"
-                                            placeholder="Lakshmi Sowjanya" 
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label>Email</label>
-                                    <div className="input-wrapper">
-                                        <i className="fas fa-envelope"></i>
-                                        <input 
-                                            type="email" 
-                                            className="form-input"
-                                            placeholder="name@company.com" 
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="input-group">
-                                    <label>Password</label>
-                                    <div className="input-wrapper">
-                                        <i className="fas fa-lock"></i>
-                                        <input 
-                                            type="password" 
-                                            className="form-input"
-                                            placeholder="••••••••" 
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <button type="submit" className="btn-submit">
-                                    <span>Create Account</span>
-                                    <i className="fas fa-user-plus"></i>
-                                </button>
-                            </form>
-                        )}
-
-                        {message && <div className="auth-feedback">{message}</div>}
-
-                        {/* Divider */}
-                        <div className="auth-divider">
-                            <span>or continue with</span>
-                        </div>
-
-                        {/* Google OAuth */}
-                        <button 
-                            type="button" 
-                            className="btn-google" 
-                            onClick={() => window.location.href = "http://localhost:5000/auth/google/login"}
-                        >
-                            <i className="fab fa-google"></i>
-                            <span>Continue with Google</span>
-                        </button>
-                    </div>
+                <div className="summary-pill">
+                    <i className="fas fa-bolt"></i>
+                    <span>{wikiSummary ? wikiSummary : "Loading live session telemetry..."}</span>
                 </div>
-            )}
 
+                <button className="btn-signout" onClick={handleLogout}>
+                    <i className="fas fa-arrow-right-from-bracket"></i>
+                    <span>Sign Out</span>
+                </button>
+            </div>
         </div>
     );
 }
