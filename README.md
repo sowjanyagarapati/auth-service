@@ -11,6 +11,14 @@ A high-performance, full-stack microservice demonstrating production-ready authe
 
 ---
 
+## 📸 Application Preview
+
+| Sign In (Existing User) | Sign Up (New Account) |
+| :---: | :---: |
+| <img src="docs/screenshots/signin.png" width="360" alt="Sign In Screen" /> | <img src="docs/screenshots/signup.png" width="360" alt="Sign Up Screen" /> |
+
+---
+
 ## 🌟 Architecture & Security Highlights
 
 * **Google OAuth 2.0 Integration**: Implements the **OAuth 2.0 Authorization Code Flow** using `httpx` async requests to exchange Google auth codes for profile info (`email`, `name`).
@@ -200,3 +208,13 @@ npm start
 ```
 
 Open `http://localhost:3000` in your browser to interact with the application dashboard!
+
+## Next Steps:
+1. 2FA
+2. Logout/Delete Cookie functionality
+3. Rate limiting
+4. Add user role for admin
+5. Password reset feature with email
+6. Add API docs for endpoints
+7. Add password strength checker for user registration
+8. Add feature to update the user profile, that requires authentication.
