@@ -102,6 +102,11 @@ def refresh_token(refresh_token: str = Cookie(None)):
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
+@app.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(key="refresh_token", httponly=True, samesite="lax")
+    return {"message": "Logged out successfully"}
+
     
 @app.get("/random")
 def get_random_number(current_user: str = Depends(get_current_user)):
@@ -117,6 +122,7 @@ def google_login():
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"response_type=code&client_id={GOOGLE_CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20email%20profile"
+        f"&prompt=select_account"
     )
     return RedirectResponse(google_auth_url)
     

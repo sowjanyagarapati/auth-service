@@ -59,12 +59,18 @@ function App() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        setIsLoggedIn(false);
-        setIsWikiSummary('');
-        setErrorMessage('');
-        setSuccessMessage('Signed out successfully.');
+    const handleLogout = async () => {
+        try {
+            await axios.post('http://localhost:5000/logout', {}, { withCredentials: true });
+        } catch (error) {
+            console.error("Error logging out from server", error);
+        } finally {
+            localStorage.removeItem('token');
+            setIsLoggedIn(false);
+            setIsWikiSummary('');
+            setErrorMessage('');
+            setSuccessMessage('Signed out successfully.');
+        }
     };
 
     useEffect(() => {
